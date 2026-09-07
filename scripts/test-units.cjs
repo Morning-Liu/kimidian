@@ -8,6 +8,7 @@ const cp = require('./.copy-test.cjs');
 const mf = require('./.mf-test.cjs');
 const sp = require('./.sp-test.cjs');
 const mt = require('./.mt-test.cjs');
+const clp = require('./.clp-test.cjs');
 
 let failed = 0;
 function eq(actual, expected, name) {
@@ -197,6 +198,56 @@ eq(co.summarizeConfigOptions(OPTS),
   '诊断摘要格式');
 eq(co.summarizeConfigOptions([]), 'configOptions: <空>', '空摘要');
 eq(co.DEFAULT_MODEL, 'kimi-code/k3', '默认模型 = K3');
+
+console.log('== 思考档位短标签 ==');
+eq(co.shortThinkingLabel('Thinking Max'), 'Max', 'Thinking Max → Max');
+eq(co.shortThinkingLabel('Thinking High'), 'High', 'Thinking High → High');
+eq(co.shortThinkingLabel('Thinking Low'), 'Low', 'Thinking Low → Low');
+eq(co.shortThinkingLabel('Standard'), 'Standard', '单词原样');
+eq(co.shortThinkingLabel('Max'), 'Max', '已是短标签原样');
+eq(co.shortThinkingLabel('  Thinking   High  '), 'High', '多空格仍取末段');
+eq(co.shortThinkingLabel(''), '', '空串安全');
+// 思考多档下拉：label 用短标签，value 不变；模型下拉不受影响
+const k3Thinking = { id: 'thinking', name: 'Thinking', category: 'thought_level', currentValue: 'thinking_max',
+  options: [
+    { value: 'thinking_standard', name: 'Thinking Standard' },
+    { value: 'thinking_high', name: 'Thinking High' },
+    { value: 'thinking_max', name: 'Thinking Max' },
+  ] };
+const thinkState = co.selectViewState({ option: k3Thinking, label: '思考', hasSession: true, fallbackText: null });
+eq(thinkState.kind, 'select', '思考多档 → select');
+eq(thinkState.options.map((o) => o.label), ['Standard', 'High', 'Max'], '思考选项短标签');
+eq(thinkState.options.map((o) => o.value), ['thinking_standard', 'thinking_high', 'thinking_max'], '思考选项 value 不变');
+eq(thinkState.current, 'thinking_max', '当前值原样');
+const modelState2 = co.selectViewState({ option: model, label: '模型', hasSession: true, fallbackText: null });
+eq(modelState2.options[0].label, 'K2.7 Coding', '模型下拉 label 不受短标签影响');
+
+console.log('== CLI 路径解析 ==');
+const FAKE_ENV = {
+  USERPROFILE: 'C:\\Users\\t', APPDATA: 'C:\\Users\\t\\AppData\\Roaming',
+  KIMI_INSTALL_DIR: '', PATH: 'C:\\one;C:\\two',
+};
+// 全部落空 → 官方默认位置兜底
+const miss = clp.resolveCliPath('', FAKE_ENV);
+eq(miss.path, 'C:\\Users\\t\\.kimi-code\\bin\\kimi.exe', '落空 → 官方默认路径');
+eq(miss.source, null, '落空 source=null');
+eq(miss.candidates.some((c) => c.path.indexOf('npm') >= 0), true, '候选含 npm 全局');
+// 手动值优先返回（existsSync 真实 fs：用项目内必然存在的文件模拟）
+const realFile = require('path').join(__dirname, 'test-units.cjs');
+const hitManual = clp.resolveCliPath(realFile, FAKE_ENV);
+eq(hitManual.path, realFile, '手动存在 → 原样');
+eq(hitManual.source, '设置页手动配置', '手动命中来源');
+// KIMI_INSTALL_DIR 进入候选且排在官方默认前
+const withEnv = clp.cliPathCandidates({ ...FAKE_ENV, KIMI_INSTALL_DIR: 'D:\\kimi' });
+eq(withEnv[0].path, 'D:\\kimi\\bin\\kimi.exe', 'KIMI_INSTALL_DIR 候选最前');
+eq(withEnv[1].path, 'C:\\Users\\t\\.kimi-code\\bin\\kimi.exe', '官方默认紧随其后');
+// PATH 目录展开 exe/cmd/无后缀
+eq(withEnv.some((c) => c.path === 'C:\\one\\kimi.exe'), true, 'PATH 展开含 kimi.exe');
+eq(withEnv.some((c) => c.path === 'C:\\two\\kimi.cmd'), true, 'PATH 展开含 kimi.cmd');
+// 候选去重（KIMI_INSTALL_DIR 指向 .kimi-code 时与官方默认同路径，不重复）
+const dedupeEnv = { ...FAKE_ENV, KIMI_INSTALL_DIR: 'C:\\Users\\t\\.kimi-code' };
+const paths = clp.cliPathCandidates(dedupeEnv).map((c) => c.path.toLowerCase());
+eq(new Set(paths).size, paths.length, '候选路径去重');
 
 console.log('== attachments：分类 / mime / 截断 / 注入格式 ==');
 eq(at.classifyFile('a.png'), 'image', 'png → image');

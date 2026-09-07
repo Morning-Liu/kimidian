@@ -16,6 +16,7 @@ import { promises as fsp } from "fs";
 import { join } from "path";
 import { FileSystemAdapter, Notice } from "obsidian";
 import { ConfigOption, summarizeConfigOptions } from "./config-options";
+import { resolveCliPath } from "./cli-path";
 import type KimidianPlugin from "./main";
 import { probeGitBash } from "./shell-path";
 
@@ -88,11 +89,18 @@ export async function runDiagnostics(
   const adapter = plugin.app.vault.adapter;
   const vaultRoot =
     adapter instanceof FileSystemAdapter ? adapter.getBasePath() : null;
-  const cliPath = plugin.settings.cliPath;
+  const cliResolved = resolveCliPath(plugin.settings.cliPath);
   say("[路径]");
   say(`  vault 根: ${vaultRoot ?? "<无法获取>"}`);
   say(`  spawn cwd: ${vaultRoot ?? "<继承 Obsidian 进程 cwd>"}`);
-  say(`  CLI 路径: ${cliPath}`);
+  say(`  CLI 路径（设置值）: ${plugin.settings.cliPath || "<空，自动探测>"}`);
+  say(`  CLI 路径（解析后）: ${cliResolved.path}${cliResolved.source ? `（来源：${cliResolved.source}）` : "（⚠️ 未命中任何候选，兜底路径）"}`);
+  for (const c of cliResolved.candidates) {
+    say(`  ${c.exists ? "✅" : "❌"} ${c.path}（${c.source}）`);
+  }
+  if (!cliResolved.source) {
+    say("  ⚠️ 未找到 kimi CLI。请在 PowerShell 运行：irm https://code.kimi.com/kimi-code/install.ps1 | iex");
+  }
   say(`  插件目录: ${plugin.manifest.dir ?? "n/a"}`);
 
   // ---------- Git Bash 探测（Windows 建会话必需）----------
@@ -134,14 +142,14 @@ export async function runDiagnostics(
   };
 
   // ---------- 步骤 1: kimi --version ----------
-  const v1 = await run("kimi.exe --version", () => probeVersion(cliPath));
+  const v1 = await run("kimi.exe --version", () => probeVersion(cliResolved.path));
   if (v1) {
     // ---------- 步骤 2-5: acp 全链路（独立一次性进程，注入与插件相同的 KIMI_SHELL_PATH） ----------
     // 复用固定诊断会话（data.json 的 diagSessionId），避免每次启动新建会话刷屏历史
     const t0 = Date.now();
     try {
       const r = await probeAcpChain(
-        cliPath,
+        cliResolved.path,
         vaultRoot ?? undefined,
         bashInject,
         plugin.settings.diagSessionId

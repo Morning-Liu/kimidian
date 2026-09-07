@@ -23,6 +23,7 @@ import * as os from "os";
 import * as path from "path";
 import { AuthRequiredError, KimiAcpClient } from "./acp-client";
 import { BRAND_NAME, MOON_ICON_ID, MOON_SVG } from "./brand";
+import { resolveCliPath } from "./cli-path";
 import {
   BINARY_STORE_DIR,
   MAX_IMAGE_BYTES,
@@ -455,7 +456,7 @@ export class KimidianView extends ItemView {
   private async reconnect(): Promise<void> {
     try {
       this.client.updateCommand(
-        this.plugin.settings.cliPath,
+        resolveCliPath(this.plugin.settings.cliPath).path,
         this.splitArgs(this.plugin.settings.extraArgs)
       );
       this.client.setCwd(this.vaultBasePath());
@@ -2203,13 +2204,12 @@ export class KimidianView extends ItemView {
     }, delayMs);
   }
 
-  /** CLI 会话日志根目录：优先从 cliPath 推导（…/.kimi-code/bin/kimi.exe → …/.kimi-code/sessions） */
+  /**
+   * CLI 会话日志根目录：~/.kimi-code/sessions。
+   * CLI 的会话始终写在其用户主目录下，与可执行文件位置无关
+   * （旧实现从 cliPath 推导，CLI 装到别处即错位）。
+   */
   private sessionsRoot(): string {
-    const cli = this.plugin.settings.cliPath;
-    if (cli) {
-      const cand = path.join(path.dirname(path.dirname(cli)), "sessions");
-      return cand;
-    }
     return path.join(os.homedir(), ".kimi-code", "sessions");
   }
 

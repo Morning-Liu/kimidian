@@ -11,6 +11,7 @@ import {
 } from "obsidian";
 import { KimiAcpClient } from "./acp-client";
 import { BRAND_NAME, MOON_ICON_ID, MOON_SVG } from "./brand";
+import { resolveCliPath } from "./cli-path";
 import {
   KimidianView,
   KIMIDIAN_VIEW_TYPE,
@@ -43,8 +44,9 @@ export default class KimidianPlugin extends Plugin {
     // 品牌图标：月亮 logo（ribbon / 视图标签共用，currentColor 适配主题）
     addIcon(MOON_ICON_ID, MOON_SVG);
 
+    // 设置留空时自动探测 CLI 路径（不回写 data.json，CLI 挪位置后下次启动重新解析）
     this.acpClient = new KimiAcpClient(
-      this.settings.cliPath,
+      resolveCliPath(this.settings.cliPath).path,
       this.splitArgs(this.settings.extraArgs),
       {
         onSessionUpdate: (n) => {

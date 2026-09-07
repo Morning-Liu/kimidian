@@ -52,7 +52,9 @@ export interface KimidianSettings {
 }
 
 export const DEFAULT_SETTINGS: KimidianSettings = {
-  cliPath: "C:\\Users\\rh\\.kimi-code\\bin\\kimi.exe",
+  // 留空 = 自动探测（官方默认位置 → KIMI_INSTALL_DIR → npm 全局 → PATH），
+  // 不再写死作者本机路径（issue #2：其他用户装上即 ENOENT）
+  cliPath: "",
   bashPath: "",
   extraArgs: "",
   permissionMode: "ask",
@@ -82,10 +84,12 @@ export class KimidianSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Kimi CLI 路径")
-      .setDesc("kimi 可执行文件的完整路径（kimi.exe）。")
+      .setDesc(
+        "kimi 可执行文件的完整路径。留空自动探测：官方默认位置（~/.kimi-code/bin/kimi.exe）→ KIMI_INSTALL_DIR → npm 全局 → PATH。未安装时在 PowerShell 运行 irm https://code.kimi.com/kimi-code/install.ps1 | iex"
+      )
       .addText((t) =>
         t
-          .setPlaceholder("C:\\Users\\rh\\.kimi-code\\bin\\kimi.exe")
+          .setPlaceholder("留空 = 自动探测")
           .setValue(this.plugin.settings.cliPath)
           .onChange(async (v) => {
             this.plugin.settings.cliPath = v.trim();

@@ -162,8 +162,12 @@ export class KimiAcpClient {
       proc = await this.spawnWithRetry();
     } catch (e) {
       this.setState("error", String(e));
+      const enoent = (e as NodeJS.ErrnoException)?.code === "ENOENT";
       throw new Error(
-        `无法启动 Kimi CLI：${this.cliPath}\n请在插件设置中检查 CLI 路径。(${String(e)})`
+        enoent
+          ? `无法启动 Kimi CLI：${this.cliPath}（文件不存在，CLI 可能未安装）\n` +
+            `在 PowerShell 运行安装命令后点「重连」：irm https://code.kimi.com/kimi-code/install.ps1 | iex`
+          : `无法启动 Kimi CLI：${this.cliPath}\n请在插件设置中检查 CLI 路径。(${String(e)})`
       );
     }
     const gen = ++this.generation;

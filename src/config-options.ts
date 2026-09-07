@@ -56,6 +56,18 @@ export function pickThinkingOption(
   );
 }
 
+/**
+ * 思考档位短标签：CLI 侧选项名形如 "Thinking Max"，
+ * 状态栏空间有限且"Thinking"与左侧"思考："标签重复，只保留档位词。
+ * "Thinking Max" → "Max"；单词原样返回（"Standard"/"High"/"Max"…）。
+ */
+export function shortThinkingLabel(name: string): string {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) return trimmed;
+  const parts = trimmed.split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1] : trimmed;
+}
+
 /** 下拉渲染状态机：placeholder（无会话/无数据）/ hidden（思考单档）/ single（单选文本）/ select */
 export type SelectViewState =
   | { kind: "placeholder"; text: string }
@@ -88,9 +100,15 @@ export function selectViewState(params: {
     if (label === "思考") return { kind: "hidden" };
     return { kind: "single", text: `${label}：${options[0].name || options[0].value}` };
   }
+  const labeled = options.map((o) => ({
+    value: o.value,
+    // 思考档位用短标签（去 "Thinking" 前缀），其余原样
+    label:
+      label === "思考" ? shortThinkingLabel(o.name) || o.value : o.name || o.value,
+  }));
   return {
     kind: "select",
-    options: options.map((o) => ({ value: o.value, label: o.name || o.value })),
+    options: labeled,
     current: option.currentValue ?? "",
   };
 }

@@ -25,6 +25,7 @@ __export(config_options_exports, {
   pickModelOption: () => pickModelOption,
   pickThinkingOption: () => pickThinkingOption,
   selectViewState: () => selectViewState,
+  shortThinkingLabel: () => shortThinkingLabel,
   summarizeConfigOptions: () => summarizeConfigOptions
 });
 module.exports = __toCommonJS(config_options_exports);
@@ -44,6 +45,12 @@ function pickThinkingOption(opts) {
     (o) => o.id === "thinking" || o.id === "effort" || o.category === "thought_level"
   ) ?? null;
 }
+function shortThinkingLabel(name) {
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) return trimmed;
+  const parts = trimmed.split(/\s+/);
+  return parts.length > 1 ? parts[parts.length - 1] : trimmed;
+}
 function selectViewState(params) {
   const { option, label, hasSession, fallbackText } = params;
   const options = option?.options ?? [];
@@ -54,9 +61,14 @@ function selectViewState(params) {
     if (label === "\u601D\u8003") return { kind: "hidden" };
     return { kind: "single", text: `${label}\uFF1A${options[0].name || options[0].value}` };
   }
+  const labeled = options.map((o) => ({
+    value: o.value,
+    // 思考档位用短标签（去 "Thinking" 前缀），其余原样
+    label: label === "\u601D\u8003" ? shortThinkingLabel(o.name) || o.value : o.name || o.value
+  }));
   return {
     kind: "select",
-    options: options.map((o) => ({ value: o.value, label: o.name || o.value })),
+    options: labeled,
     current: option.currentValue ?? ""
   };
 }
@@ -85,13 +97,3 @@ function summarizeConfigOptions(opts) {
   );
   return `configOptions: ${opts.length} \u9879 [${parts.join(", ")}]`;
 }
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
-  BUILTIN_MODEL_OPTIONS,
-  DEFAULT_MODEL,
-  normalizeModelInput,
-  pickModelOption,
-  pickThinkingOption,
-  selectViewState,
-  summarizeConfigOptions
-});
