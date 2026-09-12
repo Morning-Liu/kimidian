@@ -25,10 +25,25 @@ export const DEFAULT_MODEL = "kimi-code/k3";
 
 /** 内置模型兜底表：设置页在还没有任何会话记录时使用（与 CLI config.toml 实测一致） */
 export const BUILTIN_MODEL_OPTIONS: ConfigOptionValue[] = [
-  { value: "kimi-code/kimi-for-coding", name: "K2.7 Coding" },
+  { value: "kimi-code/kimi-for-coding", name: "K2.8 Preview" },
   { value: "kimi-code/kimi-for-coding-highspeed", name: "K2.7 Coding Highspeed" },
   { value: "kimi-code/k3", name: "K3" },
+  { value: "kimi-code/k3-256k", name: "K3 256K" },
 ];
+
+/**
+ * 模型显示名覆盖：kimi-for-coding 入口的实际模型已换成 K2.8 Preview（2026-09-11 官方公告，
+ * Model ID 不变），但 CLI/服务端目录的显示名可能滞后或被刷新回 "K2.7 Coding"。
+ * 下拉展示一律以此表优先，保证用户看到的是真实模型名。
+ */
+export const MODEL_DISPLAY_OVERRIDES: Record<string, string> = {
+  "kimi-code/kimi-for-coding": "K2.8 Preview",
+};
+
+/** 模型显示名：覆盖表优先，否则用 CLI/兜底表给的名字 */
+export function modelDisplayName(value: string, fallbackName: string): string {
+  return MODEL_DISPLAY_OVERRIDES[value] ?? fallbackName;
+}
 
 /** 从 configOptions 中挑出模型项（id=model 优先，名称正则兜底） */
 export function pickModelOption(
@@ -98,13 +113,20 @@ export function selectViewState(params: {
   }
   if (options.length === 1) {
     if (label === "思考") return { kind: "hidden" };
+    if (label === "模型") {
+      return { kind: "single", text: `${label}：${modelDisplayName(options[0].value, options[0].name || options[0].value)}` };
+    }
     return { kind: "single", text: `${label}：${options[0].name || options[0].value}` };
   }
   const labeled = options.map((o) => ({
     value: o.value,
-    // 思考档位用短标签（去 "Thinking" 前缀），其余原样
+    // 模型：K2.8 等显示名以覆盖表优先；思考档位用短标签（去 "Thinking" 前缀）
     label:
-      label === "思考" ? shortThinkingLabel(o.name) || o.value : o.name || o.value,
+      label === "思考"
+        ? shortThinkingLabel(o.name) || o.value
+        : label === "模型"
+          ? modelDisplayName(o.value, o.name || o.value)
+          : o.name || o.value,
   }));
   return {
     kind: "select",

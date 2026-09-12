@@ -6,6 +6,7 @@ import {
   BUILTIN_MODEL_OPTIONS,
   ConfigOptionValue,
   DEFAULT_MODEL,
+  modelDisplayName,
 } from "./config-options";
 import type KimidianPlugin from "./main";
 
@@ -128,7 +129,7 @@ export class KimidianSettingTab extends PluginSettingTab {
           : "新会话使用的模型。聊天状态栏手动切换后会记住并沿用；在此处改动则回到默认。"
       );
     modelSetting.addDropdown((d) => {
-      for (const o of modelOpts) d.addOption(o.value, o.name || o.value);
+      for (const o of modelOpts) d.addOption(o.value, modelDisplayName(o.value, o.name || o.value));
       // 兜底：当前默认不在选项表里也能显示
       if (!modelOpts.some((o) => o.value === this.plugin.settings.defaultModel)) {
         d.addOption(this.plugin.settings.defaultModel, this.plugin.settings.defaultModel);

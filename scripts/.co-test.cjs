@@ -21,6 +21,8 @@ var config_options_exports = {};
 __export(config_options_exports, {
   BUILTIN_MODEL_OPTIONS: () => BUILTIN_MODEL_OPTIONS,
   DEFAULT_MODEL: () => DEFAULT_MODEL,
+  MODEL_DISPLAY_OVERRIDES: () => MODEL_DISPLAY_OVERRIDES,
+  modelDisplayName: () => modelDisplayName,
   normalizeModelInput: () => normalizeModelInput,
   pickModelOption: () => pickModelOption,
   pickThinkingOption: () => pickThinkingOption,
@@ -31,10 +33,17 @@ __export(config_options_exports, {
 module.exports = __toCommonJS(config_options_exports);
 var DEFAULT_MODEL = "kimi-code/k3";
 var BUILTIN_MODEL_OPTIONS = [
-  { value: "kimi-code/kimi-for-coding", name: "K2.7 Coding" },
+  { value: "kimi-code/kimi-for-coding", name: "K2.8 Preview" },
   { value: "kimi-code/kimi-for-coding-highspeed", name: "K2.7 Coding Highspeed" },
-  { value: "kimi-code/k3", name: "K3" }
+  { value: "kimi-code/k3", name: "K3" },
+  { value: "kimi-code/k3-256k", name: "K3 256K" }
 ];
+var MODEL_DISPLAY_OVERRIDES = {
+  "kimi-code/kimi-for-coding": "K2.8 Preview"
+};
+function modelDisplayName(value, fallbackName) {
+  return MODEL_DISPLAY_OVERRIDES[value] ?? fallbackName;
+}
 function pickModelOption(opts) {
   if (!opts) return null;
   return opts.find((o) => o.id === "model" || /model|模型/i.test(o.name ?? "")) ?? null;
@@ -59,12 +68,15 @@ function selectViewState(params) {
   }
   if (options.length === 1) {
     if (label === "\u601D\u8003") return { kind: "hidden" };
+    if (label === "\u6A21\u578B") {
+      return { kind: "single", text: `${label}\uFF1A${modelDisplayName(options[0].value, options[0].name || options[0].value)}` };
+    }
     return { kind: "single", text: `${label}\uFF1A${options[0].name || options[0].value}` };
   }
   const labeled = options.map((o) => ({
     value: o.value,
-    // 思考档位用短标签（去 "Thinking" 前缀），其余原样
-    label: label === "\u601D\u8003" ? shortThinkingLabel(o.name) || o.value : o.name || o.value
+    // 模型：K2.8 等显示名以覆盖表优先；思考档位用短标签（去 "Thinking" 前缀）
+    label: label === "\u601D\u8003" ? shortThinkingLabel(o.name) || o.value : label === "\u6A21\u578B" ? modelDisplayName(o.value, o.name || o.value) : o.name || o.value
   }));
   return {
     kind: "select",

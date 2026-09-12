@@ -45,6 +45,7 @@ import {
   parseWireMsgTimes,
 } from "./msg-time";
 import {
+  modelDisplayName,
   normalizeModelInput,
   pickModelOption,
   pickThinkingOption,
@@ -2158,8 +2159,10 @@ export class KimidianView extends ItemView {
       // 模型下拉（占位文本显示当前将生效的模型名：手动选择 > 默认模型）
       const wantId = this.plugin.settings.model || this.plugin.settings.defaultModel;
       const wantName =
-        this.plugin.settings.lastModelOptions.find((o) => o.value === wantId)
-          ?.name ?? "默认模型";
+        modelDisplayName(
+          wantId,
+          this.plugin.settings.lastModelOptions.find((o) => o.value === wantId)?.name ?? "默认模型"
+        );
       this.renderConfigSelect(
         this.statusModelEl,
         this.modelOptions,

@@ -220,7 +220,14 @@ eq(thinkState.options.map((o) => o.label), ['Standard', 'High', 'Max'], '思考�
 eq(thinkState.options.map((o) => o.value), ['thinking_standard', 'thinking_high', 'thinking_max'], '思考选项 value 不变');
 eq(thinkState.current, 'thinking_max', '当前值原样');
 const modelState2 = co.selectViewState({ option: model, label: '模型', hasSession: true, fallbackText: null });
-eq(modelState2.options[0].label, 'K2.7 Coding', '模型下拉 label 不受短标签影响');
+eq(modelState2.options[0].label, 'K2.8 Preview', '模型下拉 label 应用 K2.8 覆盖（CLI 旧名不透出）');
+
+console.log('== 模型显示名覆盖 ==');
+eq(co.modelDisplayName('kimi-code/kimi-for-coding', 'K2.7 Coding'), 'K2.8 Preview', '覆盖表优先');
+eq(co.modelDisplayName('kimi-code/k3', 'K3'), 'K3', '无覆盖用原名');
+eq(co.modelDisplayName('kimi-code/unknown', ''), '', '空名无覆盖 → 空串（调用方兜底 value）');
+eq(co.BUILTIN_MODEL_OPTIONS.find((o) => o.value === 'kimi-code/kimi-for-coding').name, 'K2.8 Preview', '内置表已是 K2.8 Preview');
+eq(co.BUILTIN_MODEL_OPTIONS.some((o) => o.value === 'kimi-code/k3-256k'), true, '内置表含 k3-256k');
 
 console.log('== CLI 路径解析 ==');
 const FAKE_ENV = {
